@@ -20,9 +20,21 @@ const connectDB = require('./config/database');
 
 const app = express();
 
-// Middleware - Allow all origins for now
+// Middleware - CORS
+// Use FRONTEND_URL env var when provided (set this in Render), otherwise
+// fall back to the production frontend on Render. Allow localhost for dev.
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://build-pro.onrender.com';
+const allowedOrigins = [FRONTEND_URL, 'http://localhost:5173'];
+
 app.use(cors({
-  origin: '*', // Allow all origins temporarily
+  origin: function (origin, callback) {
+    // allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS policy: Origin not allowed'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -73,7 +85,7 @@ connectDB()
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server is running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV}`);
-      console.log(`CORS: Allowing all origins`);
+      console.log(`CORS: Allowed origins: ${allowedOrigins.join(', ')}`);
     });
   })
   .catch((err) => {
